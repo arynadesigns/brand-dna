@@ -16,6 +16,7 @@
       if(nxt.dataset.slide==='swipe') Swiper.start();
       if(nxt.dataset.slide==='top3') Top3.render();
       if(nxt.dataset.slide==='never') NeverUse.render();
+      if(nxt.dataset.slide==='more') Questions.render();
     }, 200);
   }
 
@@ -232,7 +233,65 @@
   const NeverUse = makePicker({
     gridId:'neverGrid', countId:'neverCount', contId:'neverContinue', badge:X_SVG,
     getMarks:()=>state.votes.filter(v=>v.vote==='pass').map(v=>v.mark),
-    onLock:picks=>{ state.neverUse=picks; flash('Locked in — ready for the summary'); }
+    onLock:picks=>{ state.neverUse=picks; go(current+1); }
   });
+
+  // ---------------- A few more questions ----------------
+  const Questions = (function(){
+    const SCALES = [
+      ['Playful','Serious'], ['Accessible','Premium'], ['Familiar','Disruptive'],
+      ['Classic','Modern'], ['Understated','Expressive']
+    ];
+    const FEELS = [
+      ['🛡️','Trusted'], ['🎈','Playful'], ['✨','Premium'], ['⚡','Disruptive'],
+      ['⬛','Minimal'], ['💪','Bold'], ['🙂','Friendly'], ['🚀','Innovative'],
+      ['👑','Luxury'], ['🤝','Approachable'], ['🏛️','Authoritative'], ['🎉','Fun'],
+      ['💎','Elegant'], ['🔥','Energetic'], ['🎩','Sophisticated'], ['🌿','Calm']
+    ];
+    const FEEL_MAX = 4;
+    let built = false;
+    function render(){
+      if(built) return;
+      state.scales = {};
+      const scalesBox = document.getElementById('qScales');
+      SCALES.forEach(([l,r])=>{
+        const row=document.createElement('div'); row.className='scale';
+        const le=document.createElement('div'); le.className='scale-end left'; le.textContent=l;
+        const dots=document.createElement('div'); dots.className='scale-dots';
+        for(let i=0;i<5;i++){
+          const d=document.createElement('button'); d.type='button'; d.className='dot';
+          d.setAttribute('aria-label', l+' to '+r+' — '+(i+1)+' of 5');
+          d.addEventListener('click',()=>{
+            dots.querySelectorAll('.dot').forEach(x=>x.classList.remove('on'));
+            d.classList.add('on'); state.scales[l+'–'+r]=i;
+          });
+          dots.appendChild(d);
+        }
+        const re=document.createElement('div'); re.className='scale-end right'; re.textContent=r;
+        row.append(le,dots,re); scalesBox.appendChild(row);
+      });
+      const chipsBox = document.getElementById('qChips');
+      FEELS.forEach(([emoji,name])=>{
+        const c=document.createElement('button'); c.type='button'; c.className='chip'; c.dataset.name=name;
+        c.innerHTML='<span class="chip-emoji">'+emoji+'</span>'+name;
+        c.addEventListener('click',()=>{
+          if(c.classList.contains('sel')){ c.classList.remove('sel'); }
+          else { if(chipsBox.querySelectorAll('.chip.sel').length>=FEEL_MAX) return; c.classList.add('sel'); }
+          chipsBox.classList.toggle('maxed', chipsBox.querySelectorAll('.chip.sel').length>=FEEL_MAX);
+        });
+        chipsBox.appendChild(c);
+      });
+      document.getElementById('qResults').addEventListener('click',()=>{
+        state.feel=Array.from(chipsBox.querySelectorAll('.chip.sel')).map(c=>c.dataset.name);
+        state.admire=document.getElementById('qAdmire').value.trim();
+        state.avoid=document.getElementById('qAvoid').value.trim();
+        state.notes=document.getElementById('qNotes').value.trim();
+        flash('Building your brand profile…');
+        // when the results slide exists: go(current+1);
+      });
+      built = true;
+    }
+    return { render };
+  })();
 
   window.brandDnaState = state;

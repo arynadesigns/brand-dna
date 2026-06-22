@@ -133,6 +133,46 @@
           </div>
         </div>
       </section>
+      <section class="slide slide--more" data-slide="more">
+        <div class="slide__inner">
+          <div class="logo"><img src="logos/mirabel.png" alt="Mirabel"></div>
+          <h1>A few more questions</h1>
+          <p class="sub">Help us build a complete picture of your brand direction.</p>
+
+          <div class="q-section">
+            <div class="q-title">Where should the brand sit?</div>
+            <p class="q-note">Tap a dot on each scale — left, right, or anywhere in between.</p>
+            <div class="scales" id="qScales"></div>
+          </div>
+
+          <div class="q-section">
+            <div class="q-title">How should the brand feel?<span class="q-hint">pick up to 4</span></div>
+            <div class="chips" id="qChips"></div>
+          </div>
+
+          <div class="q-section">
+            <div class="q-title">Brands you admire</div>
+            <p class="q-note">Not just logos — any brand whose overall identity resonates.</p>
+            <input type="text" id="qAdmire" placeholder="Apple, Stripe, Patagonia…" autocomplete="off">
+          </div>
+
+          <div class="q-section">
+            <div class="q-title">Brands you don&rsquo;t want to look like</div>
+            <p class="q-note">Especially in your industry — brands you want to be clearly different from.</p>
+            <input type="text" id="qAvoid" placeholder="CompetitorA, CompetitorB…" autocomplete="off">
+          </div>
+
+          <div class="q-section">
+            <div class="q-title">Anything else?<span class="q-hint">optional</span></div>
+            <textarea id="qNotes" placeholder="Tone, must-keep elements, deadlines, inspiration…"></textarea>
+          </div>
+
+          <div class="bar">
+            <button class="back" type="button" data-action="back"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg> Back</button>
+            <button class="next" type="button" id="qResults">See my results <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          </div>
+        </div>
+      </section>
   </div>
   <div class="toast" id="toast"></div>
   <script src="data.js"></script>
