@@ -2,7 +2,7 @@
     --ground:#180030; --ground-2:#21093f; --accent:#FFE063; --white:#fff;
     --muted:rgba(255,255,255,0.56); --faint:rgba(255,255,255,0.40);
     --line:rgba(255,255,255,0.10); --line-strong:rgba(255,255,255,0.16);
-    --field:rgba(255,255,255,0.035);
+    --field:rgba(255,255,255,0.035); --danger:#FF5C5C;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -142,6 +142,8 @@
   .t3.sel .t3-tile{box-shadow:0 0 0 3px var(--accent),0 12px 30px rgba(255,224,99,0.18)}
   .t3.sel .t3-check{opacity:1;transform:scale(1)}
   .t3.sel .t3-name{color:#fff}
+  .slide--never .t3.sel .t3-tile{box-shadow:0 0 0 3px var(--danger),0 12px 30px rgba(255,92,92,0.22)}
+  .slide--never .t3-check{background:var(--danger);color:#fff}
   .top3-grid.maxed .t3:not(.sel){opacity:.38}
   .t3-count{font-family:"Satoshi",sans-serif;font-size:13px;font-weight:600;letter-spacing:0.05em;color:var(--muted)}
   .next.is-off{background:var(--ground-2);color:var(--faint);box-shadow:none;cursor:default;pointer-events:none}

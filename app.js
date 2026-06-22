@@ -15,6 +15,7 @@
       current = to; window.scrollTo({top:0});
       if(nxt.dataset.slide==='swipe') Swiper.start();
       if(nxt.dataset.slide==='top3') Top3.render();
+      if(nxt.dataset.slide==='never') NeverUse.render();
     }, 200);
   }
 
@@ -172,8 +173,11 @@
   })();
 
 
-  // ---------------- Top 3 picker ----------------
-  const Top3 = (function(){
+  // ---------------- Mark pickers (pick-3 grids) ----------------
+  const CHECK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const X_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+  function makePicker(opts){
     let grid, countEl, contBtn, target=3, started=false;
     function tileArt(m){
       const art=document.createElement('div'); art.className='t3-tile'; art.style.background=m.bg;
@@ -190,15 +194,14 @@
       grid.classList.toggle('maxed', sel>=target);
     }
     function render(){
-      grid=document.getElementById('top3Grid'); countEl=document.getElementById('top3Count');
-      contBtn=document.getElementById('top3Continue');
-      const kept=state.votes.filter(v=>v.vote==='like').map(v=>v.mark);
-      target=Math.min(3, kept.length);
+      grid=document.getElementById(opts.gridId); countEl=document.getElementById(opts.countId);
+      contBtn=document.getElementById(opts.contId);
+      const marks=opts.getMarks();
+      target=Math.min(3, marks.length);
       grid.innerHTML='';
-      kept.forEach(m=>{
+      marks.forEach(m=>{
         const b=document.createElement('button'); b.className='t3'; b.type='button'; b._m=m;
-        const chk=document.createElement('span'); chk.className='t3-check';
-        chk.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        const chk=document.createElement('span'); chk.className='t3-check'; chk.innerHTML=opts.badge;
         const nm=document.createElement('div'); nm.className='t3-name'; nm.textContent=m.name;
         b.append(tileArt(m), chk, nm);
         b.addEventListener('click',()=>{
@@ -212,14 +215,24 @@
       if(!started){
         contBtn.addEventListener('click',()=>{
           if(contBtn.classList.contains('is-off')) return;
-          state.top3=Array.from(grid.querySelectorAll('.t3.sel')).map(b=>b._m);
-          flash('Top 3 locked in — ready for the summary');
-          // when the summary slide exists: go(current+1);
+          opts.onLock(Array.from(grid.querySelectorAll('.t3.sel')).map(b=>b._m));
         });
         started=true;
       }
     }
     return { render };
-  })();
+  }
+
+  const Top3 = makePicker({
+    gridId:'top3Grid', countId:'top3Count', contId:'top3Continue', badge:CHECK_SVG,
+    getMarks:()=>state.votes.filter(v=>v.vote==='like').map(v=>v.mark),
+    onLock:picks=>{ state.top3=picks; go(current+1); }
+  });
+
+  const NeverUse = makePicker({
+    gridId:'neverGrid', countId:'neverCount', contId:'neverContinue', badge:X_SVG,
+    getMarks:()=>state.votes.filter(v=>v.vote==='pass').map(v=>v.mark),
+    onLock:picks=>{ state.neverUse=picks; flash('Locked in — ready for the summary'); }
+  });
 
   window.brandDnaState = state;
