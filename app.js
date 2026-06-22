@@ -174,7 +174,7 @@
 
   // ---------------- Top 3 picker ----------------
   const Top3 = (function(){
-    let grid, countEl, contBtn, subEl, target=3, started=false;
+    let grid, countEl, contBtn, target=3, started=false;
     function tileArt(m){
       const art=document.createElement('div'); art.className='t3-tile'; art.style.background=m.bg;
       const letter=()=>{ const l=document.createElement('div'); l.className='t3-letter'; l.style.color=m.fg; l.textContent=m.name[0]; art.appendChild(l); };
@@ -191,10 +191,9 @@
     }
     function render(){
       grid=document.getElementById('top3Grid'); countEl=document.getElementById('top3Count');
-      contBtn=document.getElementById('top3Continue'); subEl=document.getElementById('top3Sub');
+      contBtn=document.getElementById('top3Continue');
       const kept=state.votes.filter(v=>v.vote==='like').map(v=>v.mark);
       target=Math.min(3, kept.length);
-      subEl.textContent='From '+kept.length+' you liked — which are your absolute must-haves?';
       grid.innerHTML='';
       kept.forEach(m=>{
         const b=document.createElement('button'); b.className='t3'; b.type='button'; b._m=m;

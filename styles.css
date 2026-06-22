@@ -128,7 +128,8 @@
   .swipe-done h2{font-family:"Satoshi",sans-serif;font-weight:600;letter-spacing:-0.01em;font-size:21px;color:#fff;margin-bottom:14px}
   .swipe-done p{color:var(--muted);font-size:15px;margin-bottom:30px}
   .slide--top3 .slide__inner{max-width:880px}
-  .top3-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:40px}
+  .slide--top3 h1{margin-bottom:42px}
+  .top3-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-bottom:40px}
   .t3{position:relative;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:11px;transition:transform .15s,opacity .15s}
   .t3:hover{transform:translateY(-3px)}
   .t3-tile{width:100%;aspect-ratio:1;border-radius:22px;display:grid;place-items:center;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08);transition:box-shadow .16s}
