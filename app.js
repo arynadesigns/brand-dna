@@ -241,47 +241,168 @@
   });
 
   // ---------------- A few more questions ----------------
+  // ordered so a row-wise 2-column grid reproduces the reference's left/right columns
   const SCALE_OPTIONS = [
-    ['Playful','Serious'], ['Accessible','Premium'], ['Familiar','Disruptive'],
-    ['Classic','Modern'], ['Understated','Expressive']
+    ['Traditional','Progressive'], ['Clinical','Human'],
+    ['Reactive','Proactive'],      ['Academic','Practical'],
+    ['Guarded','Open'],            ['Corporate','Personal'],
+    ['Cautious','Confident'],      ['Structured','Flexible'],
+    ['Quiet','Outspoken'],         ['Established','Disruptive']
   ];
   const FEEL_OPTIONS = [
-    ['🛡️','Trusted'], ['🎈','Playful'], ['✨','Premium'], ['⚡','Disruptive'],
-    ['⬛','Minimal'], ['💪','Bold'], ['🙂','Friendly'], ['🚀','Innovative'],
-    ['👑','Luxury'], ['🤝','Approachable'], ['🏛️','Authoritative'], ['🎉','Fun'],
-    ['💎','Elegant'], ['🔥','Energetic'], ['🎩','Sophisticated'], ['🌿','Calm']
+    'Trusted', 'Playful', 'Premium', 'Disruptive',
+    'Minimal', 'Bold', 'Friendly', 'Innovative',
+    'Luxury', 'Approachable', 'Authoritative', 'Fun',
+    'Elegant', 'Energetic', 'Sophisticated', 'Calm'
   ];
-  const FEEL_EMOJI = Object.fromEntries(FEEL_OPTIONS.map(([e,n])=>[n,e]));
+
+  // ---- Brand experience map (2x2 perceptual map) ----
+  // axes: x 0..100 = Exclusive -> Approachable ; y 0..100 = Innovative -> Classic
+  const EXP_AXES = { top:'Innovative', bottom:'Classic', left:'Exclusive', right:'Approachable' };
+  const EXP_MODES = [['today','Today'],['wish','Wish to be'],['competitor','Competitor']];
+  function expQuadrant(m){
+    const h = m.x<45 ? EXP_AXES.left : (m.x>55 ? EXP_AXES.right : 'balanced');
+    const v = m.y<45 ? EXP_AXES.top  : (m.y>55 ? EXP_AXES.bottom : 'balanced');
+    if(h==='balanced' && v==='balanced') return 'centre';
+    if(h==='balanced') return v;
+    if(v==='balanced') return h;
+    return v+' / '+h;
+  }
+  function buildExperienceMap(opts){
+    const interactive = !!(opts && opts.interactive);
+    const exp = state.experience;
+    const wrap = document.createElement('div'); wrap.className='exp-wrap';
+
+    // legend (doubles as the marker-mode switch when interactive)
+    let activeMode = 'today';
+    const legend = document.createElement('div'); legend.className='exp-legend';
+    EXP_MODES.forEach(([mode,label])=>{
+      const item = document.createElement(interactive?'button':'div');
+      if(interactive) item.type='button';
+      item.className='legend-item'+(interactive && mode===activeMode?' active':''); item.dataset.mode=mode;
+      if(interactive) item.setAttribute('aria-pressed', String(mode===activeMode));
+      const dot=document.createElement('span'); dot.className='legend-dot '+mode; item.append(dot, document.createTextNode(label));
+      if(interactive){
+        item.addEventListener('click',()=>{
+          activeMode=mode;
+          legend.querySelectorAll('.legend-item').forEach(x=>{
+            const on=x.dataset.mode===mode; x.classList.toggle('active',on); x.setAttribute('aria-pressed',String(on));
+          });
+        });
+      }
+      legend.append(item);
+    });
+
+    const map = document.createElement('div'); map.className='exp-map'+(interactive?' is-interactive':'');
+    map.append(
+      Object.assign(document.createElement('div'),{className:'exp-axis-v'}),
+      Object.assign(document.createElement('div'),{className:'exp-axis-h'})
+    );
+    Object.entries(EXP_AXES).forEach(([pos,txt])=>{
+      const l=document.createElement('div'); l.className='exp-label '+pos; l.textContent=txt; map.append(l);
+    });
+
+    function paint(){
+      map.querySelectorAll('.exp-marker').forEach(n=>n.remove());
+      function add(type,m,idx){
+        const el2=document.createElement(interactive?'button':'div');
+        if(interactive) el2.type='button';
+        el2.className='exp-marker '+type; el2.style.left=m.x+'%'; el2.style.top=m.y+'%';
+        const label=EXP_MODES.find(([mo])=>mo===type)[1];
+        el2.setAttribute(interactive?'aria-label':'title', label+' — '+expQuadrant(m));
+        if(interactive){
+          el2.addEventListener('click',ev=>{
+            ev.stopPropagation();
+            if(type==='competitor') exp.competitors.splice(idx,1); else exp[type]=null;
+            paint();
+          });
+        }
+        map.append(el2);
+      }
+      if(exp.today) add('today',exp.today);
+      if(exp.wish)  add('wish',exp.wish);
+      exp.competitors.forEach((c,i)=>add('competitor',c,i));
+    }
+
+    if(interactive){
+      map.addEventListener('click',e=>{
+        if(e.target.closest('.exp-marker')) return; // marker handles its own removal
+        const r=map.getBoundingClientRect();
+        const x=Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100));
+        const y=Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100));
+        if(activeMode==='competitor') exp.competitors.push({x,y}); else exp[activeMode]={x,y};
+        paint();
+      });
+    }
+    paint();
+    wrap.append(legend, map);
+    return wrap;
+  }
 
   const Questions = (function(){
     const SCALES = SCALE_OPTIONS;
     const FEELS = FEEL_OPTIONS;
-    const FEEL_MAX = 4;
+    const FEEL_MAX = 5;
     let built = false;
     function render(){
       if(built) return;
       state.scales = {};
+      state.experience = {today:null, wish:null, competitors:[]};
       const scalesBox = document.getElementById('qScales');
+      let activeMode = 'today';
+      // legend doubles as the marker-mode switch: taps place the active marker
+      const legend=document.createElement('div'); legend.className='scale-legend';
+      function mkMode(mode,label){
+        const b=document.createElement('button'); b.type='button';
+        b.className='legend-item'+(mode===activeMode?' active':''); b.dataset.mode=mode;
+        b.setAttribute('aria-pressed', String(mode===activeMode));
+        b.innerHTML='<span class="legend-dot '+mode+'"></span>'+label;
+        b.addEventListener('click',()=>{
+          activeMode=mode;
+          legend.querySelectorAll('.legend-item').forEach(x=>{
+            const on=x.dataset.mode===mode;
+            x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on));
+          });
+        });
+        return b;
+      }
+      legend.append(mkMode('today','Today'), mkMode('wish','Wish to be'));
+      scalesBox.appendChild(legend);
       SCALES.forEach(([l,r])=>{
+        const key=l+'–'+r;
+        state.scales[key]={today:null,wish:null};
         const row=document.createElement('div'); row.className='scale';
+        const labels=document.createElement('div'); labels.className='scale-labels';
         const le=document.createElement('div'); le.className='scale-end left'; le.textContent=l;
+        const re0=document.createElement('div'); re0.className='scale-end right'; re0.textContent=r;
+        labels.append(le,re0);
         const dots=document.createElement('div'); dots.className='scale-dots';
+        const buttons=[];
+        function paint(){
+          const s=state.scales[key];
+          buttons.forEach((d,i)=>{
+            d.classList.toggle('today', s.today===i);
+            d.classList.toggle('wish', s.wish===i);
+            d.classList.toggle('both', s.today===i && s.wish===i);
+          });
+        }
         for(let i=0;i<5;i++){
           const d=document.createElement('button'); d.type='button'; d.className='dot';
           d.setAttribute('aria-label', l+' to '+r+' — '+(i+1)+' of 5');
           d.addEventListener('click',()=>{
-            dots.querySelectorAll('.dot').forEach(x=>x.classList.remove('on'));
-            d.classList.add('on'); state.scales[l+'–'+r]=i;
+            const s=state.scales[key];
+            s[activeMode] = (s[activeMode]===i) ? null : i; // tap again to clear
+            paint();
           });
-          dots.appendChild(d);
+          dots.appendChild(d); buttons.push(d);
         }
-        const re=document.createElement('div'); re.className='scale-end right'; re.textContent=r;
-        row.append(le,dots,re); scalesBox.appendChild(row);
+        row.append(labels,dots); scalesBox.appendChild(row);
       });
+      document.getElementById('qMap').append(buildExperienceMap({interactive:true}));
       const chipsBox = document.getElementById('qChips');
-      FEELS.forEach(([emoji,name])=>{
+      FEELS.forEach(name=>{
         const c=document.createElement('button'); c.type='button'; c.className='chip'; c.dataset.name=name;
-        c.innerHTML='<span class="chip-emoji">'+emoji+'</span>'+name;
+        c.textContent=name;
         c.addEventListener('click',()=>{
           if(c.classList.contains('sel')){ c.classList.remove('sel'); }
           else { if(chipsBox.querySelectorAll('.chip.sel').length>=FEEL_MAX) return; c.classList.add('sel'); }
@@ -397,23 +518,41 @@
       body.append(hero);
 
       // positioning
-      const answered=SCALE_OPTIONS.filter(([l,r])=>state.scales && state.scales[l+'–'+r]!=null);
+      const answered=SCALE_OPTIONS.filter(([l,r])=>{ const s=state.scales && state.scales[l+'–'+r]; return s && (s.today!=null || s.wish!=null); });
       if(answered.length){
         const panel=el('div','scales');
+        const legend=el('div','scale-legend');
+        const li1=el('div','legend-item'); li1.append(el('span','legend-dot today'), document.createTextNode('Today'));
+        const li2=el('div','legend-item'); li2.append(el('span','legend-dot wish'), document.createTextNode('Wish to be'));
+        legend.append(li1,li2); panel.append(legend);
         answered.forEach(([l,r])=>{
-          const v=state.scales[l+'–'+r];
-          const row=el('div','scale'); row.append(el('div','scale-end left',l));
+          const s=state.scales[l+'–'+r];
+          const row=el('div','scale');
+          const labels=el('div','scale-labels');
+          labels.append(el('div','scale-end left',l), el('div','scale-end right',r));
           const dots=el('div','scale-dots');
-          for(let i=0;i<5;i++){ const d=el('div','dot'+(i===v?' on':'')); dots.append(d); }
-          row.append(dots, el('div','scale-end right',r)); panel.append(row);
+          for(let i=0;i<5;i++){
+            let cls='dot';
+            if(s.today===i) cls+=' today';
+            if(s.wish===i) cls+=' wish';
+            if(s.today===i && s.wish===i) cls+=' both';
+            dots.append(el('div',cls));
+          }
+          row.append(labels, dots); panel.append(row);
         });
         body.append(section('Brand positioning', panel));
+      }
+
+      // brand experience map
+      const exp=state.experience;
+      if(exp && (exp.today || exp.wish || (exp.competitors&&exp.competitors.length))){
+        body.append(section('Brand experience', buildExperienceMap({interactive:false})));
       }
 
       // personality
       if(state.feel && state.feel.length){
         const chips=el('div','res-chips');
-        state.feel.forEach(n=>{ chips.append(el('span','res-chip','<span class="chip-emoji">'+(FEEL_EMOJI[n]||'')+'</span>'+n)); });
+        state.feel.forEach(n=>{ chips.append(el('span','res-chip',n)); });
         body.append(section('Brand personality', chips));
       }
 
@@ -486,10 +625,23 @@
       L.push('STYLE ARCHETYPE: '+p.archetype);
       L.push(p.tagline);
       L.push(p.note);
-      const answered=SCALE_OPTIONS.filter(([l,r])=>state.scales && state.scales[l+'–'+r]!=null);
+      const answered=SCALE_OPTIONS.filter(([l,r])=>{ const s=state.scales && state.scales[l+'–'+r]; return s && (s.today!=null || s.wish!=null); });
       if(answered.length){ L.push(''); L.push('BRAND POSITIONING');
         const POS=['strongly ','leans ','balanced','leans ','strongly '];
-        answered.forEach(([l,r])=>{ const v=state.scales[l+'–'+r]; const t=v===2?'balanced':(POS[v]+(v<2?l:r)); L.push('- '+l+' ↔ '+r+': '+t); });
+        const fmt=(v,l,r)=> v==null?null:(v===2?'balanced':(POS[v]+(v<2?l:r)));
+        answered.forEach(([l,r])=>{
+          const s=state.scales[l+'–'+r]; const parts=[];
+          if(s.today!=null) parts.push('today: '+fmt(s.today,l,r));
+          if(s.wish!=null) parts.push('wish to be: '+fmt(s.wish,l,r));
+          L.push('- '+l+' ↔ '+r+': '+parts.join(', '));
+        });
+      }
+      const exp=state.experience;
+      if(exp && (exp.today || exp.wish || (exp.competitors&&exp.competitors.length))){
+        L.push(''); L.push('BRAND EXPERIENCE (Innovative↔Classic / Exclusive↔Approachable)');
+        if(exp.today) L.push('- Today: '+expQuadrant(exp.today));
+        if(exp.wish)  L.push('- Wish to be: '+expQuadrant(exp.wish));
+        exp.competitors.forEach((c,i)=>L.push('- Competitor '+(i+1)+': '+expQuadrant(c)));
       }
       if(state.feel&&state.feel.length){ L.push(''); L.push('BRAND PERSONALITY: '+state.feel.join(', ')); }
       if(p.types.length){ L.push(''); L.push('PREFERRED LOGO STYLES'); p.types.forEach(([t,c],i)=>L.push((i+1)+'. '+t+' — '+c+' liked')); }
