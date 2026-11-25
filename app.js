@@ -90,11 +90,34 @@
       updateMeters();
     }
 
-    function updateMeters(){
-      const total=deck.length, n=Math.min(idx+1,total);
-      progFill.style.width=(idx/total*100)+'%';
-      const txt = idx>=total ? (total+' / '+total) : (n+' / '+total);
-      progCount.textContent=txt; swipeCount.textContent=txt;
+    // One spring drives both the fill and the counted number, so they always agree (Arc Progress).
+    // Arc's "smooth" spring: visualDuration .3s, bounce 0, i.e. critically damped. Retargeting keeps velocity.
+    const SPRING_W=2*Math.PI/(0.3*1.2), reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+    let pPos=0, pVel=0, pTarget=0, pRaf=0, pLast=0;
+    function paintMeters(){
+      const total=deck.length||1, p=Math.min(Math.max(pPos,0),1);
+      // the fill slides in from the left instead of growing its width
+      progFill.style.transform='translateX('+(p*100-100)+'%)';
+      progCount.textContent=Math.round(p*100)+'%';
+    }
+    function springTick(now){
+      let dt=Math.min((now-pLast)/1000, 0.05); pLast=now;
+      while(dt>0){ const h=Math.min(dt,0.004); pVel+=(-SPRING_W*SPRING_W*(pPos-pTarget)-2*SPRING_W*pVel)*h; pPos+=pVel*h; dt-=h; }
+      if(Math.abs(pPos-pTarget)<1e-4 && Math.abs(pVel)<1e-3){ pPos=pTarget; pVel=0; pRaf=0; paintMeters(); return; }
+      paintMeters(); pRaf=requestAnimationFrame(springTick);
+    }
+    function setProgress(target, jump){
+      pTarget=target;
+      if(jump || reduceMotion.matches){ cancelAnimationFrame(pRaf); pRaf=0; pPos=target; pVel=0; paintMeters(); return; }
+      if(!pRaf){ pLast=performance.now(); pRaf=requestAnimationFrame(springTick); }
+    }
+
+    function updateMeters(jump){
+      const total=deck.length;
+      progCount.dataset.widest='100%';
+      swipeCount.textContent=Math.min(idx+1,total)+' / '+total;
+      progCount.closest('.progress').toggleAttribute('data-complete', idx>=total);
+      setProgress(Math.min(idx/total,1), jump);
     }
 
     function attachDrag(card){
@@ -124,7 +147,7 @@
       card.style.transition='transform .34s ease, opacity .34s ease';
       card.style.transform='translate('+(dir*680)+'px,'+((dy||0)+40)+'px) rotate('+(dir*22)+'deg)';
       card.style.opacity='0';
-      idx++;
+      idx++; updateMeters();
       setTimeout(function(){ renderStack(); busy=false; }, 240);
     }
 
@@ -146,9 +169,8 @@
           '<h2>'+noun+' caught your eye</h2>'+
           '<p>Now let’s narrow it down to your absolute favourites.</p>'+
           '<button class="next" type="button" data-action="next">Pick my top 3 '+
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>'+
+          '<span class="next-fx" aria-hidden="true"></span></button>'+
         '</div>';
-      progFill.style.width='100%';
     }
 
     function start(){
@@ -161,6 +183,7 @@
       const full=[head].concat(rest);
       const n=Math.min(SIZE[state.session]||full.length, full.length);
       deck=full.slice(0,n); idx=0; state.votes=[]; state.dna={};
+      updateMeters(true);
       if(!started){
         controls.querySelectorAll('[data-vote]').forEach(b=>b.addEventListener('click',()=>vote(b.dataset.vote)));
         document.addEventListener('keydown',e=>{

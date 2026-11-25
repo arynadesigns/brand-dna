@@ -1,4 +1,4 @@
-# Brand DNA — Mirabel
+# Brand DNA — Livada Studio
 
 An interactive, single-page web app that maps a client's visual taste by having them
 swipe through real brand marks, then builds a style profile from their reactions.
@@ -23,6 +23,7 @@ It's plain static files — any static server works. No build step, no dependenc
 | `styles.css` | All styling. Design tokens (colors, etc.) live in `:root` at the top. |
 | `app.js` | App logic: slide navigation (`go()`), the `Swiper` module (swipe deck), and the `Top3` module (results). |
 | `data.js` | The brand library — `const ALL`, ~60 brands with metadata + embedded logos. `app.js` reads this global. |
+| `fonts/` | Golos UI (headings) and Geist (body), loaded via `@font-face` in `styles.css`. |
 | `logos/` | SVG brand marks, loaded as `logos/<slug>.svg`. Missing ones fall back to the simpleicons CDN. |
 
 ## How it fits together
